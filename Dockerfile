@@ -1,11 +1,10 @@
 FROM python:3.12
 
-
 # Non-root user
 ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
-ENV PATH=/home/${USERNAME}/.local/bin:$PATH
+ENV PATH=/home/${USERNAME}/.local/bin:${PATH}
 
 # Add non-root user
 RUN groupadd --gid $USER_GID $USERNAME
@@ -20,6 +19,7 @@ RUN apt-get clean
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y --no-install-recommends \
     curl git vim less gcc build-essential
+# For Python
 RUN apt-get install -y \
     libmagic-dev poppler-utils libpoppler-dev \
     tesseract-ocr libtesseract-dev tesseract-ocr-jpn \
@@ -42,6 +42,8 @@ RUN echo 'export PS1="\[\033[01;32m\]\u@\h\[\033[01;33m\] \w \[\033[01;31m\]\$(_
 
 # Set the working directory in the container
 WORKDIR /workspace
+ENV GEM_HOME=/home/USERNAME/.gems
+ENV PATH=${GEM_HOME}/bin:${PATH}
 COPY ./requirements.txt /workspace
 RUN chown -R $USERNAME:$USERNAME /workspace
 
@@ -49,21 +51,13 @@ RUN chown -R $USERNAME:$USERNAME /workspace
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir black flake8 isort
 RUN pip install --no-cache-dir -r requirements.txt
-# RUN pip install --no-cache-dir -U \
-#     langchain-unstructured unstructured
 RUN pip install --no-cache-dir --upgrade \
-    langchain-unstructured unstructured-client \
-    unstructured "unstructured[all-docs]" python-magic
+    langchain-anthropic langchain-unstructured \
+    unstructured-client unstructured \
+    "unstructured[all-docs]" python-magic \
+    flashrank
 
 # Run any command to initialize the container
 EXPOSE 8000
-# CMD ["bash"]
-# ENTRYPOINT ["/bin/bash", "-l", "-c"]
 ENTRYPOINT ["sleep", "infinity"]
-
-
-# RUN pip install chainlit ollama openai langchain langchain-chroma langchain-unstructured
-
-# ENTRYPOINT ["sleep", "infinity"]
-# CMD ["python3"]
-# CMD ["chainlit", "run", "app.py"]
+# ENTRYPOINT ["chainlit", "run", "app.py"]
