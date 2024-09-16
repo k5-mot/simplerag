@@ -121,7 +121,7 @@ human_prompt = HumanMessagePromptTemplate.from_template(HUMAN_TEMPLATE)
 prompt = ChatPromptTemplate.from_messages([system_prompt, human_prompt])
 
 # LLM
-model = ChatAnthropic(temperature=1.0, model_name="claude-3-5-sonnet-20240620")
+# model = ChatAnthropic(temperature=1.0, model_name="claude-3-5-sonnet-20240620")
 model = ChatOllama(base_url=OLLAMA_API_URL, model="llama3.1:8b")
 
 # Output parser

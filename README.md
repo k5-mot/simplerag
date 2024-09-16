@@ -1,17 +1,21 @@
-# Simple-RAG
+# 🦜 🔗 Simple-RAG
 
-OllamaでLLMを、ChainlitでUIを、LangchainでRAGを構築したやつ。
+Ollama で LLM を、Chainlit で UI を、Langchain で RAG を構築したやつ。
+
+## システム構成
+
+![system](./images/system.drawio.svg)
+
+## 手順
+
+- VSCode で本リポジトリを devcontainer で起動する
+- ターミナルで、`chainlit run app.py`を実行
+  - ドキュメントをベクトル化するので、だいぶ遅い
 
 ## サンプル
 
-- NTTと野村総研、三菱電機のWikipedia情報をMarkdown/PDF/HTML形式で入力している
+- NTT と野村総研、三菱電機の Wikipedia 情報を Markdown/PDF/HTML 形式で入力している
 
 ![ntt](./images/ntt.png)
 ![nri](./images/nri.png)
 ![melco](./images/melco.png)
-
-## 手順
-
-- VSCodeで本リポジトリをdevcontainerで起動する
-- ターミナルで、`chainlit run app.py`を実行
-  - ドキュメントをベクトル化するので、だいぶ遅い
