@@ -55,9 +55,9 @@ RUN pip install --no-cache-dir --upgrade \
     langchain-anthropic langchain-unstructured \
     unstructured-client unstructured \
     "unstructured[all-docs]" python-magic \
-    flashrank
+    flashrank langchain-openai==0.1.25
 
 # Run any command to initialize the container
 EXPOSE 8000
-ENTRYPOINT ["sleep", "infinity"]
-# ENTRYPOINT ["chainlit", "run", "app.py"]
+# ENTRYPOINT ["sleep", "infinity"]
+CMD ["chainlit", "run", "app.py"]

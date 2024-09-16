@@ -2,12 +2,15 @@ name: simplerag-stack
 services:
 
   python3:
-    image: simplerag:0.0.0
+    image: k5-mot/simplerag:0.0.0
+    restart: always
     build:
       context: .
       dockerfile: ./Dockerfile
-    ports:
-      - 8000:8000
+    # ports:
+    #   - 8031:8000
+    expose:
+      - 8000
     volumes:
       - .:/workspace
     container_name: simplerag-app
