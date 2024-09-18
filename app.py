@@ -11,7 +11,7 @@ from langchain.prompts import (
     HumanMessagePromptTemplate,
     SystemMessagePromptTemplate,
 )
-from langchain.retrievers import ContextualCompressionRetriever
+from langchain.retrievers import ContextualCompressionRetriever, EnsembleRetriever
 from langchain.schema import StrOutputParser
 from langchain.text_splitter import SpacyTextSplitter
 from langchain_anthropic import ChatAnthropic
@@ -22,6 +22,7 @@ from langchain_community.document_loaders import (  # UnstructuredAPIFileLoader,
     PyMuPDFLoader,
 )
 from langchain_community.embeddings import OllamaEmbeddings
+from langchain_community.retrievers import BM25Retriever
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough
 from langchain_unstructured import UnstructuredLoader
@@ -96,6 +97,16 @@ def load_multifiles(documents_dir: str = "docs") -> List[Document]:
             print(f"Error loading {filepath}: {ex}")
             continue
         print(f"Loaded {filepath}")
+
+        # For DEBUG
+        filebase = os.path.splitext(filepath)[0]
+        if True:
+            with open(f"./debug/{os.path.basename(filebase)}.txt", mode="w") as f:
+                f.write(f"# {filepath}")
+                for doc in document:
+                    f.write(doc.page_content)
+                    f.write("\n---\n")
+
         documents.extend(add_fileinfo_to_metadata(document, filepath))
     return rearrange_metadata(documents)
 
@@ -140,17 +151,27 @@ vectorstore = Chroma(
 documents = load_multifiles()
 
 # Text Splitter
-text_splitter = SpacyTextSplitter(chunk_size=300, pipeline="ja_core_news_sm")
+text_splitter = SpacyTextSplitter(chunk_size=500, pipeline="ja_core_news_sm")
 splitted_documents = text_splitter.split_documents(documents)
 
-# Retriever
+# Dense Retriever
 vectorstore.add_documents(splitted_documents)
-retriever = vectorstore.as_retriever(search_kwargs={"k": 20})
+dense_retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+
+# Sparse Retriever
+sparse_retriever = BM25Retriever.from_documents(splitted_documents)
+sparse_retriever.k = 3
+
+# Ensemble Retriever
+ensemble_retriever = EnsembleRetriever(
+    retrievers=[dense_retriever, sparse_retriever],
+    weights=[0.5, 0.5]
+)
 
 # Reranker
 compressor = FlashrankRerank(score_threshold=0.90, top_n=3)
 compression_retriever = ContextualCompressionRetriever(
-    base_compressor=compressor, base_retriever=retriever
+    base_compressor=compressor, base_retriever=ensemble_retriever
 )
 
 # RAG chain
@@ -173,6 +194,7 @@ async def on_message(message: cl.Message):
 
     # Stream a reply message
     async for chunk in runnable.astream(message.content):
+        # print(chunk)
         if "answer" in chunk.keys():
             await reply.stream_token(chunk["answer"])
         elif "context" in chunk.keys():
@@ -185,15 +207,36 @@ async def on_message(message: cl.Message):
     print(question)
     for context in contexts:
         md = context.metadata
-        print(f"{md["id"]} ({md["file_path"]}): {md["relevance_score"]}")
+
+        if "id" in md.keys():
+            printline = str(md["id"])
+        else:
+            printline = "?"
+
+        printline += f"({md["file_path"]}): "
+
+        if "relevance_score" in md.keys():
+            printline += f"{md["relevance_score"]}"
+        print(printline)
+        # print(context.page_content)
 
     # Add documents referenced by RAG to a reply
     for context in contexts:
         # Skip added documents
         context_path = os.path.abspath(context.metadata["file_path"])
-        if any(context_path == element.name for element in reply.elements):
-            continue
+
+        # Add fragment to element
+        el_flag = False
+        for element in reply.elements:
+            if context_path == element.name:
+                element.content += "\n- - - - - -\n"
+                element.content += context.page_content
+                el_flag = True
+                continue
+
         # Add document as element
+        if el_flag:
+            continue
         reply.elements.append(
             cl.Text(
                 name=context_path,
