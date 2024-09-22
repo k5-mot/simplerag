@@ -59,5 +59,5 @@ RUN pip install --no-cache-dir --upgrade \
 
 # Run any command to initialize the container
 EXPOSE 8000
-# ENTRYPOINT ["sleep", "infinity"]
-CMD ["chainlit", "run", "app.py"]
+ENTRYPOINT ["sleep", "infinity"]
+# CMD ["chainlit", "run", "app.py"]
